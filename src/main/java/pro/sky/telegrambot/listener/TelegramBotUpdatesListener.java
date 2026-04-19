@@ -3,9 +3,11 @@ package pro.sky.telegrambot.listener;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.request.SendMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -16,11 +18,15 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     private Logger logger = LoggerFactory.getLogger(TelegramBotUpdatesListener.class);
 
+    @Value("${telegram.bot.token}")
+    private String token;
+
     @Autowired
     private TelegramBot telegramBot;
 
     @PostConstruct
     public void init() {
+        telegramBot = new TelegramBot(token);
         telegramBot.setUpdatesListener(this);
     }
 
@@ -28,7 +34,15 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         updates.forEach(update -> {
             logger.info("Processing update: {}", update);
-            // Process your updates here
+            if (update.message() != null && update.message().text() != null) {
+                String text = update.message().text();
+                Long chatId = update.message().chat().id();
+
+                if (text.equals("/start")) {
+                    SendMessage message = new SendMessage(chatId, "Привет! Я бот-напоминалка.\nОтправь мне дату и задачу в формате: 01.01.2022 20:00 Сделать домашку");
+                    telegramBot.execute(message);
+                }
+            }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
